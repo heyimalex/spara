@@ -30,6 +30,10 @@ func RunWithContext(workers int, iterations int, fn func(Context, int) error) er
 		return ErrInvalidIterations
 	}
 
+	if fn == nil {
+		return nil
+	}
+
 	if iterations == 0 {
 		return nil
 	}
