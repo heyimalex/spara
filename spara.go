@@ -43,9 +43,9 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 		workers = iterations
 	}
 
-	var index int32 = int32(workers - 1)
+	var index int64 = int64(workers - 1)
 	nextIndex := func() int {
-		return int(atomic.AddInt32(&index, 1))
+		return int(atomic.AddInt64(&index, 1))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +55,7 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 	var killed int64
 	kill := func(err error) {
 		if atomic.CompareAndSwapInt64(&killed, 0, 1) {
-			atomic.StoreInt32(&index, int32(iterations))
+			atomic.StoreInt64(&index, int64(iterations))
 			cancel()
 			firsterr = err
 		}
