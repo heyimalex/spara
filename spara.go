@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrInvalidWorkers     = errors.New("spara: invalid number of workers")
-	ErrInvalidIterations  = errors.New("spara: invalid number of iterations")
+	ErrInvalidWorkers    = errors.New("spara: invalid number of workers")
+	ErrInvalidIterations = errors.New("spara: invalid number of iterations")
 )
 
 func Run(workers int, iterations int, fn func(int) error) error {
