@@ -55,6 +55,7 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 	var killed int64
 	kill := func(err error) {
 		if atomic.CompareAndSwapInt64(&killed, 0, 1) {
+			atomic.StoreInt32(&index, int32(iterations))
 			cancel()
 			firsterr = err
 		}
@@ -67,9 +68,6 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 		go func(start int) {
 			defer wg.Done()
 			for j := start; j < iterations; j = nextIndex() {
-				if atomic.LoadInt64(&killed) == 1 {
-					return
-				}
 				if err := fn(ctx, j); err != nil {
 					kill(err)
 					return
