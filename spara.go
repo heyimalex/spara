@@ -43,7 +43,7 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 		workers = iterations
 	}
 
-	var index int32 = -1
+	var index int32 = int32(workers - 1)
 	nextIndex := func() int {
 		return int(atomic.AddInt32(&index, 1))
 	}
@@ -64,9 +64,9 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 	wg.Add(workers)
 
 	for i := 0; i < workers; i++ {
-		go func() {
+		go func(start int) {
 			defer wg.Done()
-			for j := nextIndex(); j < iterations; j = nextIndex() {
+			for j := start; j < iterations; j = nextIndex() {
 				if atomic.LoadInt64(&killed) == 1 {
 					return
 				}
@@ -75,7 +75,7 @@ func RunWithContext(workers int, iterations int, fn func(context.Context, int) e
 					return
 				}
 			}
-		}()
+		}(i)
 	}
 
 	wg.Wait()
