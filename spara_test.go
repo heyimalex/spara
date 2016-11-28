@@ -71,11 +71,15 @@ func subtestRunBasic(t *testing.T, workers, iterations int) {
 	}
 }
 
+func noopMappingFunc(i int) error {
+	return nil
+}
+
 func TestRunInputErrors(t *testing.T) {
-	if err := Run(0, 10, nil); err != ErrInvalidWorkers {
+	if err := Run(0, 10, noopMappingFunc); err != ErrInvalidWorkers {
 		t.Errorf("expected calling Run with zero workers to fail: %s", err)
 	}
-	if err := Run(1, -1, nil); err != ErrInvalidIterations {
+	if err := Run(1, -1, noopMappingFunc); err != ErrInvalidIterations {
 		t.Errorf("expected calling Run with negative iterations to fail: %s", err)
 	}
 }
@@ -87,7 +91,7 @@ func TestRunErrorBasic(t *testing.T) {
 	)
 	var count int32
 	expectedError := errors.New("")
-	err := RunWithContext(workers, iterations, func(ctx context.Context, i int) error {
+	err := RunWithContext(nil, workers, iterations, func(ctx context.Context, i int) error {
 		atomic.AddInt32(&count, 1)
 		if i == workers-1 { // last initial worker
 			time.Sleep(time.Millisecond * 10)
@@ -101,4 +105,18 @@ func TestRunErrorBasic(t *testing.T) {
 	} else if count != workers {
 		t.Errorf("call count: %d != initial worker count: %d", count, workers)
 	}
+}
+
+func ExampleRun() {
+	const workers = 5
+	inputs := []int{1, 2, 3, 4, 5}
+	outputs := make([]int, len(inputs))
+
+	Run(workers, len(inputs), func(idx int) error {
+		outputs[idx] = inputs[idx] * 2
+		return nil
+	})
+
+	fmt.Println(outputs)
+	// Output: [2 4 6 8 10]
 }
