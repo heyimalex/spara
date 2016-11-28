@@ -37,16 +37,17 @@ func Run(workers int, iterations int, fn func(index int) error) error {
 
 type MappingFunc func(ctx context.Context, index int) error
 
-// RunWithContext is exactly like Run except that it:
+// RunWithContext is exactly like Run except:
 //
-// - Accepts a parent context. Completion of this context is tracked via it's
-//   Done() channel and will stop iteration early if possible. If completion
-//   _does_ cause iteration to stop, the error returned from RunWithContext
-//   will be the value of parent.Err(). The passed context may be nil, in
-//   which case it defaults to context.Background().
-// - Passes a context to the mapping function. This context will be a child of
-//   the provided parent context, and will complete either on the first
-//   returned error, the parent completing, or all of the work being done.
+// RunWithContext accepts a parent context. Completion of this context is
+// tracked via it's Done() channel and will stop iteration early if possible.
+// If completion _does_ cause iteration to stop, the error returned from
+// RunWithContext will be the value of parent.Err(). The passed context may be
+// nil, in which case it defaults to context.Background().
+//
+// RunWithContext passes a context to the mapping function. This context will
+// be a child of the provided parent context, and will complete either on the
+// first returned error, the parent completing, or all of the work being done.
 //
 // This method can give very large performance improvements when elements of
 // the mapping function support context for early cancallation (eg
