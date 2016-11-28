@@ -1,6 +1,6 @@
-# spara
+# spara [![GoDoc](https://godoc.org/github.com/heyimalex/spara?status.svg)](https://godoc.org/github.com/heyimalex/spara)
 
-[Map](https://en.wikipedia.org/wiki/Map_(higher-order_function)) concurrently over slices in go with little boilerplate. Supports early cancellation on error. [![GoDoc](https://godoc.org/github.com/heyimalex/spara?status.svg)](https://godoc.org/github.com/heyimalex/spara)
+[Map](https://en.wikipedia.org/wiki/Map_(higher-order_function)) concurrently over slices in go with little boilerplate. Supports early cancellation on error.
 
 ```
 go get github.com/heyimalex/spara
