@@ -91,7 +91,7 @@ func TestRunErrorBasic(t *testing.T) {
 	)
 	var count int32
 	expectedError := errors.New("")
-	err := RunWithContext(nil, workers, iterations, func(ctx context.Context, i int) error {
+	err := RunWithContext(context.Background(), workers, iterations, func(ctx context.Context, i int) error {
 		atomic.AddInt32(&count, 1)
 		if i == workers-1 { // last initial worker
 			time.Sleep(time.Millisecond * 10)
