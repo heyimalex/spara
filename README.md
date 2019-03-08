@@ -35,7 +35,7 @@ This package also has support for go's `context.Context`, so your processing fun
 parent, cancel := context.WithTimeout(context.Background(), time.Millisecond * 10)
 defer cancel()
 
-err := RunWithContext(parent, 5, 50, func(ctx context.Context, idx int) error {
+err := spara.RunWithContext(parent, 5, 50, func(ctx context.Context, idx int) error {
     <-ctx.Done()
     return ctx.Err()
 })
