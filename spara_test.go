@@ -107,6 +107,31 @@ func TestRunErrorBasic(t *testing.T) {
 	}
 }
 
+// Make sure that the iteration loop exits early, whether or not the mapping
+// function cancels on context completion.
+func TestRunWithContextStopsIteration(t *testing.T) {
+	const (
+		workers    = 5
+		iterations = 500000
+	)
+	var completed int32
+	parent, cancel := context.WithTimeout(context.Background(), time.Millisecond * 100)
+	defer cancel()
+
+	err := RunWithContext(parent, workers, iterations, func(ctx context.Context, i int) error {
+		time.Sleep(time.Millisecond)
+		atomic.AddInt32(&completed, 1)
+		return nil
+	})
+	if err != context.DeadlineExceeded {
+		t.Errorf("unexpected err returned: %#v", err)
+	}
+	if completed == 0 || completed == iterations {
+		t.Errorf("completed was not in expected range: %d", completed)
+	}
+	t.Logf("actual completed: %d", completed)
+}
+
 func ExampleRun() {
 	const workers = 5
 	inputs := []int{1, 2, 3, 4, 5}
@@ -119,4 +144,17 @@ func ExampleRun() {
 
 	fmt.Println(outputs)
 	// Output: [2 4 6 8 10]
+}
+
+func ExampleRunWithContext() {
+	parent, cancel := context.WithTimeout(context.Background(), time.Millisecond * 10)
+	defer cancel()
+
+	err := RunWithContext(parent, 5, 50, func(ctx context.Context, idx int) error {
+		<-ctx.Done()
+		return ctx.Err()
+	})
+
+	fmt.Println(err)
+	// Output:  context deadline exceeded
 }
