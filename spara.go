@@ -18,16 +18,9 @@ var (
 
 // Run takes a mapping function and then runs it concurrently across up to
 // workers separate goroutines, calling it with every number in the range [0,
-// iterations-1]. If the mapping function returns an error, iteration will
-// stop prematurely and Run will return that error once all outstanding calls
+// iterations). If the mapping function returns an error, iteration will stop
+// prematurely and Run will return that first error once all in-progress calls
 // to the mapping function complete.
-//
-// In more human terms, Run is just an interesting way to write a concurrent
-// version of the higher order function, map. Because go doesn't have
-// generics, we can't really write map without a bunch of type assertions.
-// But, if instead of passing each value of the array we passed each _index_,
-// we can recover some of the convenience of map with just a little more
-// boilerplate.
 func Run(workers int, iterations int, fn func(index int) error) error {
 	if fn == nil {
 		return ErrNilMappingFunction
@@ -38,26 +31,25 @@ func Run(workers int, iterations int, fn func(index int) error) error {
 
 type MappingFunc func(ctx context.Context, index int) error
 
-// RunWithContext is exactly like Run except:
-//
-// RunWithContext accepts a parent context. Completion of this context is
-// tracked via it's Done() channel and will stop iteration early if possible.
-// If completion _does_ cause iteration to stop, the error returned from
-// RunWithContext will be the value of parent.Err().
+// RunWithContext is like Run, but it accepts a parent context. Completion of
+// this context is will stop iteration early if possible. If completion causes
+// iteration to stop, the error returned from RunWithContext will be the value
+// of the parent context's Err().
 //
 // RunWithContext passes a context to the mapping function as well. This will
 // be a child of the provided parent context, and will complete either on the
-// first returned error, the parent completing, or all of the work being done.
+// first returned error, the parent context completing, or all of the worker
+// goroutines returning.
 //
 // This method can give very large performance improvements when elements of
 // the mapping function support context for early cancellation (eg
 // http.Request's WithContext). Imagine a function that downloads multiple
-// files in parallel. Using Run, the first error would cause no _new_ files to
-// begin downloading, but it still would not return until all of the in
-// progress downloads completed. If the in progress downloads are large, that
-// could mean you're waiting a very long time for a bunch of data you don't
-// actually care about. With early cancellation, these requests would be
-// canceled eagerly, and the function could return much more quickly.
+// files in parallel. Using plain Run, the first error would cause no new
+// files to begin downloading, but it still wouldn't return until all of the
+// in progress downloads completed. If the in progress downloads are large,
+// that could mean you're waiting a very long time for a bunch of data you
+// don't actually care about. With early cancellation, these requests would be
+// canceled eagerly, and the function could return faster.
 func RunWithContext(parent context.Context, workers int, iterations int, fn MappingFunc) error {
 	if workers <= 0 {
 		return ErrInvalidWorkers
@@ -125,7 +117,8 @@ func RunWithContext(parent context.Context, workers int, iterations int, fn Mapp
 	// We don't need to spawn if the parent context never completes. The
 	// stdlib's context.Background's Done method returns nil, so apparently we
 	// can check that to decide what to do.
-	if parent.Done() != nil {
+	parentIsNeverDone := parent.Done() == nil
+	if !parentIsNeverDone {
 		go func() {
 			<-ctx.Done()
 			if atomic.CompareAndSwapInt32(&killOnce, 0, 2) {
@@ -157,11 +150,11 @@ func RunWithContext(parent context.Context, workers int, iterations int, fn Mapp
 	// firsterr is nil, but the parent context may have been the thing that
 	// stopped iteration, ie killOnce = 2. We know it definitely hasn't if the
 	// parent doesn't terminate in the first place.
-	if parent.Done() == nil {
+	if parentIsNeverDone {
 		return nil
 	}
 
-	// killOnce = 0
+	// killOnce = 0, the parent context isn't done
 	if atomic.CompareAndSwapInt32(&killOnce, 0, 3) {
 		return nil
 	}
